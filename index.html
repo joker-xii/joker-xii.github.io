@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Star Trails</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<!-- <body style="background: url(back.jpg) no-repeat center center fixed;"> -->
+
+<body>
+    <script id="vs-draw" type="x-shader/x-vertex">
+        #version 300 es
+        #define POSITION_LOCATION 0
+        #define VRO_LOCATION 1
+        #define SL_LOCATION 2
+        #define COLOR_LOCATION 3
+        #define ID_LOCATION 4
+        #define CENTER_X 0.0
+        #define CENTER_Y 0.0
+        
+        precision highp float;
+        precision highp int;
+        precision highp sampler3D;
+        
+        uniform float u_time;
+        //uniform vec2 u_acceleration;
+        
+        layout(location = POSITION_LOCATION) in vec2 a_position;
+        layout(location = VRO_LOCATION) in vec3 a_VRO;
+        layout(location = SL_LOCATION) in vec2 a_SL;
+        layout(location = COLOR_LOCATION) in vec4 a_color;
+        layout(location = ID_LOCATION) in vec2 a_ID;
+        
+        
+        out vec2 v_position;
+        out vec3 v_VRO;
+        out vec2 v_SL;
+        out vec4 v_color;
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+        vec3 newOrder(float xx,float yy,float zz,float t){
+            t=t*12.0;
+            if(t<(1.0)){
+                return vec3(xx,yy,zz);
+                //return vec3(1.0,1.0,1.0);
+            }else if(t<(2.0)){
+                return vec3(0.0,0.0,0.0);
+            }else if(t<(3.0)){
+                return vec3(zz,xx,yy);
+                //return vec3(0.0,0.0,0.0);
+            }else if(t<(4.0)){
+                return vec3(0.0,0.0,0.0);
+                //return vec3(0.0,0.0,1.0);
+            }else if(t<(5.0)){
+                return vec3(yy,xx,zz);
+            }else if(t<(6.0)){
+                return vec3(0.0,0.0,0.0);
+                //return vec3(1.0,0.0,1.0);
+            }else if(t<(7.0)){
+                return vec3(zz,yy,xx);
+                //return vec3(1.0,0.0,1.0);
+            }else if(t<(8.0)){
+                return vec3(0.0,0.0,0.0);
+                //return vec3(yy,zz,xx);
+                //return vec3(1.0,0.0,1.0);
+            }else if(t<(9.0)){
+                return vec3(yy,zz,xx);
+                //return vec3(1.0,0.0,1.0);
+            }else if(t<(10.0)){
+                //return vec3(xx,zz,xx);
+                return vec3(0.0,0.0,0.0);
+                //return vec3(1.0,0.0,1.0);
+            }else if(t<(11.0)){
+                return vec3(xx,zz,yy);
+                //return vec3(1.0,0.0,1.0);
+            }else if(t<=(12.0)){
+                return vec3(0.0,0.0,0.0);
+               //return vec3(zz,zz,yy);
+                //return vec3(1.0,0.0,1.0);
+            }
+            else{
+                return vec3(0.0,0.0,0.0);
+            }
+        }
+        vec4 newColor(vec4 co, float r,float seed){
+        //particleColor[cnt * 4] = 0 + Math.random() * 0.4;
+        //particleColor[cnt * 4 + 1] = (1 - rad) * 0.8 + Math.random() * 0.2;
+        //particleColor[cnt * 4 + 2] = 1 - Math.random() * 0.2;
+            float nx=rand(vec2(co.x,r))*0.4;
+            float ny=rand(vec2(co.y,r))*0.2+(1.0-r)*0.8;
+            float nz=1.0-rand(vec2(co.z,r))*0.2;
+            //float nw=rand(vec2(co.w,co.w))*0.5+0.5;
+    //        if(nx>1.0)nx-=1.0;
+    //        if(ny>1.0)ny-=1.0;
+    //        if(nz>1.0)nz-=1.0;
+            
+            return vec4(newOrder(nx,ny,nz,seed)*1.0,co.w);
+        }
+        void main()
+        {
+            //if((a_ID.x+a_ID.y+v_SL.x)>500.0){
+            //if(a_SL.x<-1.0)v_SL.x=-1.0;
+            if((u_time/1000.0)+a_ID.y*2.0>3.0){
+                if(a_SL.x>0.0){
+                    if(a_SL.y>1.0||a_SL.y<0.0)v_SL.y=0.0;
+                    else v_SL.y=a_SL.y+0.0833333;
+                    v_color=newColor(a_color,a_VRO.y,v_SL.y);
+                    v_SL.x=-1.0;
+                }else{
+                    v_SL.y=a_SL.y;
+                    v_color=a_color;
+                    v_SL.x=-1.0;
+                }
+            }else{
+                v_color=a_color;
+                v_SL.y=a_SL.y;
+                v_SL.x=1.0;
+            }
+            //v_SL.y=a_SL.y;
+            v_VRO.x = a_VRO.x;
+            //v_color=a_color;
+            //v_VRO.x = a_VRO.x;
+            v_VRO.z= a_VRO.z - a_VRO.x;
+            v_VRO.y= a_VRO.y;
+            v_position= vec2(v_VRO.y*cos(v_VRO.z)+ CENTER_X,v_VRO.y*sin(v_VRO.z)+CENTER_Y);
+            // v_color=vec4(a_color.xyz,a_color.w*a_ID.y);
+            gl_Position = vec4(v_position, 0.0, 1.0);
+            gl_PointSize = 2.0;
+            //gl_FrontColor = a_color;
+        }
+    </script>
+
+    <script id="fs-draw" type="x-shader/x-fragment">
+        #version 300 es
+        precision highp float;
+        precision highp int;
+
+        in vec4 v_color;
+        out vec4 outColor;
+        void main(){
+            outColor = v_color;
+        }
+
+        
+    </script>
+
+    <script src="utility.js"></script>
+    <script src="main.js">
+    </script>
+
+</body>
+
+</html>
